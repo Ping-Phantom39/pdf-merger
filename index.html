@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge PDF Files</title>
+<style>
+/* --- Body & Background --- */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background: url('Chinese Illustration.jpeg') no-repeat center center fixed;
+    background-size: cover;
+    animation: fadeInBg 1s ease-in-out;
+}
+
+/* --- Title --- */
+h1 {
+    color: #fff;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.6);
+    margin-bottom: 30px;
+    animation: slideDown 0.8s ease-out;
+}
+
+/* --- Form --- */
+form {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 30px 40px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    text-align: center;
+    animation: fadeInForm 1s ease-in-out;
+}
+
+/* --- File Input --- */
+input[type="file"] {
+    margin: 20px 0;
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+input[type="file"]:hover {
+    transform: scale(1.05);
+}
+
+/* --- Button --- */
+button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+}
+
+button:hover {
+    background: #388E3C;
+    transform: scale(1.05);
+}
+
+/* --- Animations --- */
+@keyframes fadeInBg {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeInForm {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<h1>📄 Merge PDF Files</h1>
+
+<form action="http://localhost:3000/merge" method="POST" enctype="multipart/form-data">
+    <input type="file" name="files" multiple accept="application/pdf">
+    <br>
+    <button type="submit">Merge PDFs</button>
+</form>
+
+</body>
+</html>
+
