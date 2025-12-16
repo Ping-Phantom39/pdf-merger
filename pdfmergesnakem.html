@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Jointed Slithering Snake + PDF Merge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ===== EXISTING ANIMATION STYLES ===== */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0f1a;
+  cursor: none;
+  font-family: sans-serif;
+}
+
+#lightning {
+  position: fixed;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.rain { position: fixed; inset: 0; pointer-events: none; }
+.drop {
+  position: absolute;
+  width: 2px;
+  height: 15px;
+  background: linear-gradient(to bottom, rgba(255,255,255,.7), transparent);
+  animation: fall linear infinite;
+}
+@keyframes fall { to { transform: translateY(110vh); } }
+
+.arrow {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px cyan);
+  z-index: 10;
+}
+.arrow svg { width:100%; height:100%; fill:none; stroke:url(#grad); stroke-width:3; }
+
+.trail {
+  position:absolute;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:rgba(0,255,255,.5);
+  filter:blur(2px);
+  pointer-events:none;
+  z-index:9;
+}
+
+.shard {
+  position:absolute;
+  width:6px;
+  height:2px;
+  background:linear-gradient(45deg,#fff,#9ff);
+  pointer-events:none;
+  z-index:11;
+}
+
+#snakeBtn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 28px;
+  font-size: 16px;
+  background: linear-gradient(45deg,#00ffff,#ff00ff);
+  color: #000;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  z-index: 50;
+  box-shadow: 0 0 20px rgba(0,255,255,.6);
+}
+
+.snake-segment {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(to right, #0f0, #9f9);
+  border-radius: 50%;
+  filter: drop-shadow(0 0 10px lime);
+  z-index: 20;
+}
+.snake-head {
+  background: lime;
+}
+.snake-head::before {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 10px;
+  background: red;
+  border-radius: 2px;
+  top: 5px;
+  left: 8px;
+  transform: rotate(45deg);
+}
+.snake-eye {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: black;
+  border-radius: 50%;
+  top: 5px;
+}
+.snake-eye.left { left: 4px; }
+.snake-eye.right { right: 4px; }
+
+/* ===== PDF FORM STYLES ===== */
+#pdfFormWrapper {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000; /* Above everything */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,0.9);
+  padding: 30px 40px;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+#pdfFormWrapper h1 {
+  color: #000;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+#pdfFormWrapper input[type="file"] {
+  margin: 10px 0;
+  padding: 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+#pdfFormWrapper input[type="file"]:hover {
+  transform: scale(1.05);
+}
+
+#pdfFormWrapper button {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+}
+#pdfFormWrapper button:hover {
+  background: #388E3C;
+  transform: scale(1.05);
+}
+</style>
+</head>
+
+<body>
+
+<!-- ===== PDF FORM ===== -->
+<div id="pdfFormWrapper">
+  <h1>📄 Merge PDF Files</h1>
+  <form action="http://localhost:3000/merge" method="POST" enctype="multipart/form-data">
+      <input type="file" name="files" multiple accept="application/pdf">
+      <br>
+      <button type="submit">Merge PDFs</button>
+  </form>
+</div>
+
+<!-- ===== EXISTING ANIMATION ELEMENTS ===== -->
+<div id="lightning"></div>
+<div class="rain" id="rain"></div>
+<button id="snakeBtn">Release Snake 🐍</button>
+
+<div class="arrow" id="arrow">
+<svg viewBox="0 0 24 24">
+<defs>
+<linearGradient id="grad">
+  <stop offset="0%" stop-color="#00ffff"/>
+  <stop offset="100%" stop-color="#ff00ff"/>
+</linearGradient>
+</defs>
+<path d="M2 12 L20 2 L16 12 L20 22 Z"/>
+</svg>
+</div>
+
+<script>
+/* ===== RAIN ===== */
+const rain = document.getElementById("rain");
+for(let i=0;i<180;i++){
+  const d=document.createElement("div");
+  d.className="drop";
+  d.style.left=Math.random()*100+"vw";
+  d.style.animationDuration=(.5+Math.random())+"s";
+  rain.appendChild(d);
+}
+
+/* ===== LIGHTNING ===== */
+const lightning=document.getElementById("lightning");
+setInterval(()=>{
+  if(Math.random()>0.6){
+    lightning.style.opacity=.9;
+    setTimeout(()=>lightning.style.opacity=0,100);
+  }
+},4000);
+
+/* ===== CURSOR ===== */
+const arrow=document.getElementById("arrow");
+const trails=[];
+for(let i=0;i<18;i++){
+  const t=document.createElement("div");
+  t.className="trail";
+  document.body.appendChild(t);
+  trails.push({el:t,x:innerWidth/2,y:innerHeight/2});
+}
+let mouse={x:innerWidth/2,y:innerHeight/2};
+document.addEventListener("mousemove",e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+
+/* ===== GLASS SHATTER ===== */
+document.addEventListener("click",e=>{
+  for(let i=0;i<25;i++){
+    const s=document.createElement("div");
+    s.className="shard";
+    s.style.left=e.clientX+"px";
+    s.style.top=e.clientY+"px";
+    document.body.appendChild(s);
+    const a=Math.random()*Math.PI*2;
+    const sp=Math.random()*8+4;
+    let life=25;
+    (function anim(){
+      if(life--<=0) return s.remove();
+      s.style.left=parseFloat(s.style.left)+Math.cos(a)*sp+"px";
+      s.style.top=parseFloat(s.style.top)+Math.sin(a)*sp+"px";
+      s.style.opacity=life/25;
+      requestAnimationFrame(anim);
+    })();
+  }
+});
+
+/* ===== SNAKE ===== */
+let snakeSegments = [];
+const segmentCount = 8; // short snake
+let snakeActive = false;
+const btn = document.getElementById("snakeBtn");
+
+btn.onclick = () => {
+  if(!snakeActive){
+    snakeActive = true;
+    btn.textContent = "Remove Snake 🐍";
+    // create segments
+    for(let i=0;i<segmentCount;i++){
+      const seg = document.createElement("div");
+      seg.className = "snake-segment";
+      if(i===0){
+        seg.classList.add("snake-head");
+        const eyeL = document.createElement("div");
+        const eyeR = document.createElement("div");
+        eyeL.className="snake-eye left";
+        eyeR.className="snake-eye right";
+        seg.appendChild(eyeL);
+        seg.appendChild(eyeR);
+      }
+      seg.style.left = innerWidth/2+"px";
+      seg.style.top = innerHeight/2+"px";
+      document.body.appendChild(seg);
+      snakeSegments.push(seg);
+    }
+  } else {
+    // remove snake
+    snakeSegments.forEach(s=>s.remove());
+    snakeSegments=[];
+    snakeActive=false;
+    btn.textContent="Release Snake 🐍";
+  }
+};
+
+// Slithering snake: keep segments joint
+function animateSnake(){
+  if(snakeSegments.length===0) return requestAnimationFrame(animateSnake);
+  const speed = 0.07;
+  const distance = 18; // distance between segments
+  // Head follows cursor
+  let head = snakeSegments[0];
+  let hx = parseFloat(head.style.left);
+  let hy = parseFloat(head.style.top);
+  const dx = mouse.x - hx;
+  const dy = mouse.y - hy;
+  const angle = Math.atan2(dy, dx);
+  const moveDist = Math.min(Math.sqrt(dx*dx+dy*dy), speed*100);
+  hx += Math.cos(angle)*moveDist;
+  hy += Math.sin(angle)*moveDist;
+  head.style.left = hx+"px";
+  head.style.top = hy+"px";
+  head.style.transform = `rotate(${angle*180/Math.PI}deg)`;
+  // Each segment follows previous segment
+  for(let i=1;i<snakeSegments.length;i++){
+    let prev = snakeSegments[i-1];
+    let seg = snakeSegments[i];
+    let x = parseFloat(seg.style.left);
+    let y = parseFloat(seg.style.top);
+    const pdx = parseFloat(prev.style.left)-x;
+    const pdy = parseFloat(prev.style.top)-y;
+    const pdist = Math.sqrt(pdx*pdx+pdy*pdy);
+    if(pdist>distance){
+      const moveX = pdx*(pdist-distance)/pdist;
+      const moveY = pdy*(pdist-distance)/pdist;
+      seg.style.left = x + moveX + "px";
+      seg.style.top = y + moveY + "px";
+      seg.style.transform = `rotate(${Math.atan2(pdy,pdx)*180/Math.PI}deg)`;
+    }
+  }
+  requestAnimationFrame(animateSnake);
+}
+animateSnake();
+
+/* ===== MAIN LOOP ===== */
+(function animate(){
+  let ax=parseFloat(arrow.style.left||mouse.x);
+  let ay=parseFloat(arrow.style.top||mouse.y);
+  ax+=(mouse.x-ax)*.2;
+  ay+=(mouse.y-ay)*.2;
+  arrow.style.left=ax+"px";
+  arrow.style.top=ay+"px";
+  arrow.style.transform=`translate(-50%,-50%) rotate(${Math.atan2(mouse.y-ay,mouse.x-ax)*180/Math.PI}deg)`;
+  trails[0].x+=(mouse.x-trails[0].x)*.3;
+  trails[0].y+=(mouse.y-trails[0].y)*.3;
+  for(let i=1;i<trails.length;i++){
+    trails[i].x+=(trails[i-1].x-trails[i].x)*.3;
+    trails[i].y+=(trails[i-1].y-trails[i].y)*.3;
+    trails[i].el.style.left=trails[i].x+"px";
+    trails[i].el.style.top=trails[i].y+"px";
+  }
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
+
